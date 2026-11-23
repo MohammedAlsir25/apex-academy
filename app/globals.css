@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-mono: var(--font-ibm-mono), ui-monospace, SFMono-Regular, monospace;
+
+  --color-midnight: #00205b;
+  --color-midnight-deep: #00153d;
+  --color-ocean: #003087;
+  --color-sky: #307fe2;
+  --color-sun: #f2a900;
+  --color-sand: #ffe264;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background-color: #00205b;
+    color: #ffffff;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #00205b;
+    color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.bg-architectural-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #00205b !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-certificate {
+    box-shadow: none !important;
+    border: 2px solid #00205b !important;
+    margin: 0 !important;
+    width: 100% !important;
+    page-break-inside: avoid;
+  }
+}

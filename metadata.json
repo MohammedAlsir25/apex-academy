@@ -1,0 +1,6 @@
+{
+  "name": "Apex Academy",
+  "description": "Capstone-driven learning platform built on Project-Based Incremental Scaffolding across software engineering, AI, data, cloud, cybersecurity, UI/UX, and product strategy.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
