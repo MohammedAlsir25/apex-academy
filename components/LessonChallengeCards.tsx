@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
+import { SPRING_MOMENTUM, SPRING_SNAPPY } from './FluidPrimitives';
 import {
   ArrowRight,
   BookOpen,
@@ -149,7 +150,7 @@ export function ActivePracticeCard({
               boxShadow: '0 12px 32px rgba(0, 0, 0, 0.32)',
             }
       }
-      transition={{ duration: 0.3 }}
+      transition={SPRING_SNAPPY}
       className="rounded-2xl bg-[#00205B] border-2 border-[#F2A900]/75 overflow-hidden"
     >
       {/* Top Action Header */}
@@ -169,9 +170,9 @@ export function ActivePracticeCard({
         <div className="flex items-center gap-2.5">
           {allPassed && (
             <motion.span
-              initial={{ scale: 0.7, opacity: 0 }}
+              initial={{ scale: 0.75, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 420, damping: 20 }}
+              transition={SPRING_MOMENTUM}
               className="inline-flex items-center gap-1 rounded-md bg-[#F2A900] text-[#00205B] px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider"
             >
               <Sparkles className="w-3 h-3" />
@@ -221,9 +222,9 @@ export function ActivePracticeCard({
                   >
                     {isPassed ? (
                       <motion.span
-                        initial={{ scale: 0.4, rotate: -20 }}
+                        initial={{ scale: 0.5, rotate: -14 }}
                         animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: 'spring', stiffness: 480, damping: 18 }}
+                        transition={SPRING_MOMENTUM}
                         className="shrink-0 mt-0.5"
                       >
                         <CheckCircle2 className="w-4 h-4 text-[#F2A900]" />
@@ -246,7 +247,7 @@ export function ActivePracticeCard({
             <button
               type="button"
               onClick={onFocusEditor}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold transition-colors whitespace-nowrap cursor-pointer"
+              className="tactile-press inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold whitespace-nowrap cursor-pointer"
             >
               <span>{focusEditorLabel}</span>
               <ArrowRight className="w-3.5 h-3.5" />

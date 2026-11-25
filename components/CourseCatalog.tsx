@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import Image from 'next/image';
+import { motion } from 'motion/react';
 import { ArrowUpRight, CheckCircle2, Search, Star } from 'lucide-react';
 import {
   COURSES,
@@ -12,6 +13,7 @@ import {
 } from '@/lib/curriculum';
 import { getCourseThumbnail } from '@/lib/course-assets';
 import type { CertificateRecord, EnrollmentRecord } from '@/lib/storage';
+import { SPRING_CRITICALLY_DAMPED } from './FluidPrimitives';
 
 interface CourseCatalogProps {
   enrollments: Record<string, EnrollmentRecord>;
@@ -66,10 +68,10 @@ export function CourseCatalog({
         {/* Catalog Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div>
-            <p className="text-xs font-semibold tracking-wider uppercase text-[#F2A900]">
+            <p className="text-xs font-semibold tracking-[0.06em] uppercase text-[#F2A900]">
               Multi-Discipline Curriculum
             </p>
-            <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-[-0.02em] leading-[1.12] text-white">
               Capstone-Driven Courses
             </h2>
           </div>
@@ -77,14 +79,14 @@ export function CourseCatalog({
           {/* Search & Level Controls */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="relative">
-              <Search className="w-4 h-4 text-white/50 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Search className="w-4 h-4 text-white/55 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search courses or capstones..."
                 aria-label="Search courses"
-                className="w-full sm:w-64 pl-10 pr-4 py-2.5 rounded-xl bg-[#00153D] border border-white/15 text-sm text-white placeholder:text-white/45 focus:outline-none focus:border-[#F2A900]"
+                className="w-full sm:w-64 pl-10 pr-4 py-2.5 rounded-xl bg-[#00153D] border border-white/15 text-sm text-white placeholder:text-white/45 focus:outline-none focus:border-[#F2A900] transition-colors"
               />
             </div>
 
@@ -92,7 +94,7 @@ export function CourseCatalog({
               value={selectedLevel}
               onChange={(e) => setSelectedLevel(e.target.value as 'All' | SkillLevel)}
               aria-label="Filter by skill level"
-              className="px-3.5 py-2.5 rounded-xl bg-[#00153D] border border-white/15 text-sm text-white focus:outline-none focus:border-[#F2A900] cursor-pointer"
+              className="tactile-press px-3.5 py-2.5 rounded-xl bg-[#00153D] border border-white/15 text-sm text-white focus:outline-none focus:border-[#F2A900] cursor-pointer"
             >
               <option value="All">All Levels</option>
               <option value="Foundational">Foundational</option>
@@ -102,8 +104,8 @@ export function CourseCatalog({
           </div>
         </div>
 
-        {/* Interactive Track Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-8 border-b border-white/10">
+        {/* Interactive Track Filter Tabs with Soft Scroll Edge Mask & Spring Pill */}
+        <div className="scroll-edge-mask flex items-center gap-2 overflow-x-auto pb-3 pr-8 mb-8 border-b border-white/10">
           {TRACK_FILTERS.map((track) => {
             const active = selectedTrack === track;
             return (
@@ -111,13 +113,20 @@ export function CourseCatalog({
                 key={track}
                 type="button"
                 onClick={() => setSelectedTrack(track)}
-                className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                className={`tactile-press relative px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer ${
                   active
-                    ? 'bg-[#F2A900] text-[#00205B]'
-                    : 'bg-[#00153D] text-white/80 hover:text-white border border-white/10'
+                    ? 'text-[#00205B]'
+                    : 'bg-[#00153D]/80 text-white/80 hover:text-white border border-white/10'
                 }`}
               >
-                {track}
+                {active && (
+                  <motion.span
+                    layoutId="catalog-track-pill"
+                    transition={SPRING_CRITICALLY_DAMPED}
+                    className="absolute inset-0 rounded-lg bg-[#F2A900] shadow-sm"
+                  />
+                )}
+                <span className="relative z-10">{track}</span>
               </button>
             );
           })}
@@ -125,9 +134,9 @@ export function CourseCatalog({
 
         {/* Course Grid */}
         {filteredCourses.length === 0 ? (
-          <div className="rounded-2xl bg-[#00153D] border border-white/15 p-12 text-center">
+          <div className="rounded-2xl glass-midnight border border-white/15 p-12 text-center">
             <p className="text-lg font-bold text-white">No courses match your current filters</p>
-            <p className="mt-2 text-sm text-white/70">
+            <p className="mt-2 text-sm text-white/75">
               Clear your search query or switch back to All Tracks to view the full academy catalog.
             </p>
             <button
@@ -137,7 +146,7 @@ export function CourseCatalog({
                 setSelectedLevel('All');
                 setSearchQuery('');
               }}
-              className="mt-6 px-5 py-2.5 rounded-full bg-[#F2A900] text-[#00205B] text-sm font-bold cursor-pointer"
+              className="tactile-press mt-6 px-5 py-2.5 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-sm font-bold cursor-pointer"
             >
               Reset Filters
             </button>
@@ -154,9 +163,12 @@ export function CourseCatalog({
               const thumb = getCourseThumbnail(course);
 
               return (
-                <article
+                <motion.article
                   key={course.id}
-                  className="group bg-white text-[#00205B] rounded-2xl overflow-hidden border border-white/10 flex flex-col justify-between transition-transform duration-200 hover:-translate-y-1 shadow-xl relative"
+                  layout
+                  whileHover={{ y: -4 }}
+                  transition={SPRING_CRITICALLY_DAMPED}
+                  className="group bg-white text-[#00205B] rounded-2xl overflow-hidden border border-white/15 flex flex-col justify-between shadow-xl relative"
                 >
                   <div>
                     {/* 4:3 Course Photography Thumbnail */}
@@ -169,7 +181,7 @@ export function CourseCatalog({
                         referrerPolicy="no-referrer"
                         className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#00153D]/70 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#00153D]/75 via-transparent to-transparent" />
                       <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-xs text-white font-medium">
                         <span>
                           {course.primaryMode === 'sandbox' && course.primaryRuntime
@@ -181,9 +193,9 @@ export function CourseCatalog({
                         </span>
                       </div>
 
-                      {/* Circular Progress Indicator for Enrolled Courses */}
+                      {/* Frosted Glass Circular Progress Indicator */}
                       {enrollment && !certificate && (
-                        <div className="absolute top-3 right-3 bg-[#00205B]/90 backdrop-blur-md text-white px-2.5 py-1 rounded-full flex items-center gap-2 border border-white/20 shadow-lg">
+                        <div className="absolute top-3 right-3 glass-chip text-white px-2.5 py-1 rounded-full flex items-center gap-2 border border-white/25">
                           <svg className="w-4 h-4 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
                             <path
                               className="text-white/20"
@@ -217,7 +229,7 @@ export function CourseCatalog({
                         <span className="shrink-0">{course.level}</span>
                       </div>
 
-                      <h3 className="mt-2 text-xl font-extrabold tracking-tight text-[#00205B] leading-snug">
+                      <h3 className="mt-2 text-xl font-extrabold tracking-[-0.015em] text-[#00205B] leading-snug">
                         {course.title}
                       </h3>
 
@@ -227,7 +239,7 @@ export function CourseCatalog({
 
                       {/* Capstone Preview Callout */}
                       <div className="mt-4 pt-4 border-t border-slate-200">
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#003087]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.04em] text-[#003087]">
                           Final Capstone Deliverable
                         </p>
                         <p className="mt-1 text-sm font-bold text-[#00205B]">
@@ -254,7 +266,7 @@ export function CourseCatalog({
                       <button
                         type="button"
                         onClick={() => onResumeCourse(course)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#00205B] text-white text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer hover:bg-[#003087] transition-colors"
+                        className="tactile-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#00205B] text-white text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer hover:bg-[#003087]"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5 text-[#F2A900]" />
                         <span>Certified</span>
@@ -263,7 +275,7 @@ export function CourseCatalog({
                       <button
                         type="button"
                         onClick={() => onResumeCourse(course)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer transition-colors"
+                        className="tactile-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer"
                       >
                         <span>
                           Resume ({completedCount}/{course.modules.length})
@@ -274,14 +286,14 @@ export function CourseCatalog({
                       <button
                         type="button"
                         onClick={() => onSelectCourse(course)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer transition-colors"
+                        className="tactile-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold whitespace-nowrap shrink-0 cursor-pointer"
                       >
                         <span>View Syllabus</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
-                </article>
+                </motion.article>
               );
             })}
           </div>

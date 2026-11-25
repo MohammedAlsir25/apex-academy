@@ -1,0 +1,11 @@
+<svg width="512" height="512" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Apex Academy Mark (Midnight Blue)</title>
+  <!-- Top folded architectural flap -->
+  <path d="M6 17L17.5 6H54V26.5L41 39V17H6Z" fill="#00205B"/>
+  <!-- Inner fold facet -->
+  <path d="M6 17L17.5 6L21 17H6Z" fill="#001A4C"/>
+  <!-- Left & bottom scaffolded L-frame with diagonal shear -->
+  <path d="M6 19.5H19V39H41L28 54H6V19.5Z" fill="#00205B"/>
+  <!-- Bottom-right architectural capstone node -->
+  <rect x="41" y="39" width="13" height="15" fill="#00205B"/>
+</svg>

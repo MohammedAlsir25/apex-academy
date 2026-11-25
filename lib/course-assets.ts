@@ -6,10 +6,10 @@ import courseSoftwareAi from '@/src/assets/images/course_software_ai_17954060326
 import courseDataCloud from '@/src/assets/images/course_data_cloud_1795406033007.jpg';
 import courseUxProduct from '@/src/assets/images/course_ux_product_1795406033160.jpg';
 
-import thumbPython from '@/src/assets/images/thumb_python_1795443042138.jpg';
-import thumbPromptEng from '@/src/assets/images/thumb_prompt_eng_1795443040694.jpg';
-import thumbMlEngineer from '@/src/assets/images/thumb_ml_engineer_1795443041212.jpg';
-import thumbSqlDb from '@/src/assets/images/thumb_sql_db_1795443041924.jpg';
+import thumbPython from '@/public/assets/aistudio/image_95e49471.png';
+import thumbPromptEng from '@/public/assets/aistudio/image_59301dc7.png';
+import thumbMlEngineer from '@/public/assets/aistudio/image_fcd704e5.png';
+import thumbSqlDb from '@/public/assets/aistudio/image_9ae2c1db.png';
 import thumbDataAnalyst from '@/src/assets/images/thumb_data_analyst_1795443041470.jpg';
 import thumbItSupport from '@/src/assets/images/thumb_it_support_1795443041054.jpg';
 import thumbUiUx from '@/src/assets/images/thumb_ui_ux_1795443042200.jpg';

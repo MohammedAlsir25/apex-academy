@@ -15,17 +15,32 @@
 
 @layer base {
   html {
-    scroll-behavior: smooth;
+    font-size: 100%;
     background-color: #00205b;
     color: #ffffff;
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
   body {
     font-family: var(--font-sans);
+    font-optical-sizing: auto;
+    line-height: 1.5;
+    letter-spacing: 0em;
     background-color: #00205b;
     color: #ffffff;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-optical-sizing: auto;
   }
 }
 
@@ -38,6 +53,112 @@
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Instant pointer-down tactile feedback (§1 Response — kill latency) */
+.tactile-press {
+  transition:
+    transform 95ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tactile-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* Frosted Midnight Glass material surfaces (§12 Materials & depth) */
+.glass-midnight {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 32, 91, 0.76) 0%,
+    rgba(0, 21, 61, 0.72) 100%
+  );
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 10px 30px rgba(0, 11, 36, 0.28);
+}
+
+.glass-midnight-deep {
+  background: linear-gradient(
+    180deg,
+    rgba(0, 21, 61, 0.84) 0%,
+    rgba(0, 11, 36, 0.82) 100%
+  );
+  backdrop-filter: blur(24px) saturate(175%);
+  -webkit-backdrop-filter: blur(24px) saturate(175%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 18px 44px rgba(0, 11, 36, 0.45);
+}
+
+.glass-chip {
+  background: rgba(0, 21, 61, 0.78);
+  backdrop-filter: blur(14px) saturate(170%);
+  -webkit-backdrop-filter: blur(14px) saturate(170%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 8px 20px rgba(0, 11, 36, 0.35);
+}
+
+/* Soft horizontal scroll edge mask (no hard clipping) */
+.scroll-edge-mask {
+  mask-image: linear-gradient(
+    to right,
+    black 0%,
+    black calc(100% - 28px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    black 0%,
+    black calc(100% - 28px),
+    transparent 100%
+  );
+}
+
+/* Reduced motion & accessibility fallbacks (§14) */
+@media (prefers-reduced-motion: reduce) {
+  .tactile-press {
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      color 140ms ease;
+  }
+
+  .tactile-press:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-midnight,
+  .glass-midnight-deep,
+  .glass-chip {
+    background: #00205b;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .glass-midnight-deep {
+    background: #00153d;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .glass-midnight,
+  .glass-midnight-deep,
+  .glass-chip {
+    background: #00153d;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 1.5px solid rgba(255, 255, 255, 0.65);
+  }
 }
 
 @media print {

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowRight,
   Award,
@@ -12,11 +13,13 @@ import {
 } from 'lucide-react';
 import { COURSES, getCourseById, type Course, type DisciplineTrack } from '@/lib/curriculum';
 import { COURSE_SKILLS_VERIFIED } from '@/lib/module-study-data';
+import { isSafeHttpUrl, isValidVerificationCode } from '@/lib/security';
 import type { CertificateRecord, EnrollmentRecord } from '@/lib/storage';
 import { CertificateCard } from './CertificateCredential';
 
 interface PortfolioAndCertificatesProps {
   mode: 'portfolio' | 'certificates';
+  isAuthenticated: boolean;
   learnerName: string;
   learnerHeadline: string;
   enrollments: Record<string, EnrollmentRecord>;
@@ -28,6 +31,7 @@ interface PortfolioAndCertificatesProps {
 
 export function PortfolioAndCertificates({
   mode,
+  isAuthenticated,
   learnerName,
   learnerHeadline,
   enrollments,
@@ -42,6 +46,11 @@ export function PortfolioAndCertificates({
   );
   const [verifyQuery, setVerifyQuery] = useState<string>(initialVerifyCode ?? '');
   const [activeDiplomaTrack, setActiveDiplomaTrack] = useState<string | null>(null);
+  const [remoteCertResult, setRemoteCertResult] = useState<{
+    code: string;
+    record: CertificateRecord | null;
+    loading: boolean;
+  } | null>(null);
 
   // Compute Multi-Course Track Specialization Diplomas
   const trackProgress = useMemo(() => {
@@ -101,7 +110,7 @@ export function PortfolioAndCertificates({
   const activeCert =
     certificates[selectedCertId] ?? certificateList[0] ?? null;
 
-  const verifiedLookupResult = useMemo(() => {
+  const localVerifiedLookupResult = useMemo(() => {
     const q = verifyQuery.trim().toUpperCase();
     if (!q) return null;
     const matchedCourseCert = certificateList.find(
@@ -116,8 +125,56 @@ export function PortfolioAndCertificates({
     if (matchedDiploma?.diplomaRecord) {
       return { record: matchedDiploma.diplomaRecord, isDiploma: true };
     }
-    return 'NOT_FOUND' as const;
+    return null;
   }, [verifyQuery, certificateList, trackProgress]);
+
+  useEffect(() => {
+    const code = verifyQuery.trim().toUpperCase();
+    if (mode !== 'certificates' || !code || localVerifiedLookupResult || !isValidVerificationCode(code)) {
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setRemoteCertResult({ code, record: null, loading: true });
+      try {
+        const res = await fetch(`/api/certificates/verify?code=${encodeURIComponent(code)}`);
+        if (!res.ok) throw new Error('Verification lookup failed');
+        const payload = (await res.json()) as {
+          found?: boolean;
+          certificate?: CertificateRecord;
+        };
+        if (cancelled) return;
+        setRemoteCertResult({
+          code,
+          record: payload.found && payload.certificate ? payload.certificate : null,
+          loading: false,
+        });
+      } catch {
+        if (cancelled) return;
+        setRemoteCertResult({ code, record: null, loading: false });
+      }
+    }, 280);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [mode, verifyQuery, localVerifiedLookupResult]);
+
+  const trimmedCodeUpper = verifyQuery.trim().toUpperCase();
+  const activeRemoteLookup =
+    remoteCertResult && remoteCertResult.code === trimmedCodeUpper ? remoteCertResult : null;
+
+  const verifiedLookupResult = localVerifiedLookupResult
+    ? localVerifiedLookupResult
+    : activeRemoteLookup?.loading
+      ? 'LOADING'
+      : activeRemoteLookup?.record
+        ? { record: activeRemoteLookup.record, isDiploma: false }
+        : trimmedCodeUpper.length > 0
+          ? ('NOT_FOUND' as const)
+          : null;
 
   const enrolledList = Object.values(enrollments)
     .map((enr) => {
@@ -139,10 +196,10 @@ export function PortfolioAndCertificates({
           {/* Header + Public Verification Lookup */}
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 no-print">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#F2A900]">
+              <p className="text-xs font-semibold uppercase tracking-[0.06em] text-[#F2A900]">
                 Credential &amp; Verification Registry
               </p>
-              <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+              <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-[-0.02em] leading-[1.1] text-white">
                 Verified Capstone Certificates
               </h1>
               <p className="mt-2 text-sm text-white/75 max-w-xl">
@@ -154,7 +211,7 @@ export function PortfolioAndCertificates({
             <div className="w-full lg:w-80">
               <label
                 htmlFor="verify-lookup"
-                className="block text-[11px] font-bold uppercase tracking-wider text-[#FFE264] mb-1.5"
+                className="block text-[11px] font-bold uppercase tracking-[0.04em] text-[#FFE264] mb-1.5"
               >
                 Verify Credential ID
               </label>
@@ -166,7 +223,7 @@ export function PortfolioAndCertificates({
                   value={verifyQuery}
                   onChange={(e) => setVerifyQuery(e.target.value)}
                   placeholder="Enter ID (e.g. APEX-2026-...)"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#00153D] border border-white/20 text-sm text-white placeholder:text-white/45 focus:outline-none focus:border-[#F2A900]"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#00153D] border border-white/20 text-sm text-white placeholder:text-white/45 focus:outline-none focus:border-[#F2A900] transition-colors"
                 />
               </div>
             </div>
@@ -174,14 +231,22 @@ export function PortfolioAndCertificates({
 
           {/* Public Verification Lookup Result */}
           {verifyQuery.trim().length > 0 && (
-            <div className="rounded-2xl bg-[#00153D] border border-white/15 p-6 no-print">
-              {verifiedLookupResult === 'NOT_FOUND' ? (
+            <div className="rounded-2xl glass-midnight border border-white/15 p-6 no-print">
+              {verifiedLookupResult === 'LOADING' ? (
+                <p className="text-sm text-white/80">
+                  Verifying credential{' '}
+                  <span className="font-mono font-bold text-[#FFE264]">
+                    {verifyQuery.trim()}
+                  </span>{' '}
+                  against the public registry...
+                </p>
+              ) : verifiedLookupResult === 'NOT_FOUND' ? (
                 <p className="text-sm text-white/80">
                   No issued credential matching{' '}
                   <span className="font-mono font-bold text-[#FFE264]">
                     {verifyQuery.trim()}
                   </span>{' '}
-                  was found in this session&apos;s registry. Complete the final capstone milestone
+                  was found in the verified registry. Complete the final capstone milestone
                   of a course to issue a verifiable credential ID.
                 </p>
               ) : (
@@ -221,7 +286,7 @@ export function PortfolioAndCertificates({
 
           {/* Course Certificates Section */}
           {certificateList.length === 0 ? (
-            <div className="rounded-3xl bg-[#00153D] border border-white/15 p-12 text-center">
+            <div className="rounded-3xl glass-midnight border border-white/15 p-12 text-center">
               <Award className="w-10 h-10 text-[#F2A900] mx-auto mb-4" />
               <h2 className="text-xl font-extrabold text-white">
                 No Capstone Certificates Issued Yet
@@ -234,7 +299,7 @@ export function PortfolioAndCertificates({
               <button
                 type="button"
                 onClick={onBrowseCatalog}
-                className="mt-6 px-6 py-3 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-sm font-bold cursor-pointer"
+                className="tactile-press mt-6 px-6 py-3 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-sm font-bold cursor-pointer"
               >
                 Browse Courses
               </button>
@@ -251,7 +316,7 @@ export function PortfolioAndCertificates({
                         setActiveDiplomaTrack(null);
                         setSelectedCertId(cert.courseId);
                       }}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                      className={`tactile-press px-4 py-2 rounded-xl text-xs font-bold cursor-pointer ${
                         !activeDiplomaTrack && activeCert?.courseId === cert.courseId
                           ? 'bg-[#F2A900] text-[#00205B]'
                           : 'bg-[#00153D] text-white/80 border border-white/15 hover:text-white'
@@ -312,7 +377,7 @@ export function PortfolioAndCertificates({
                     <button
                       type="button"
                       onClick={() => setActiveDiplomaTrack(item.track)}
-                      className="px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold cursor-pointer self-start"
+                      className="tactile-press px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold cursor-pointer self-start"
                     >
                       View Track Diploma
                     </button>
@@ -336,10 +401,10 @@ export function PortfolioAndCertificates({
       <div className="max-w-[1200px] mx-auto px-6 space-y-12">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/10 pb-8">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#F2A900]">
+            <p className="text-xs font-semibold uppercase tracking-[0.06em] text-[#F2A900]">
               Learner Showcase
             </p>
-            <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            <h1 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-[-0.02em] leading-[1.1] text-white">
               {learnerName}
             </h1>
             <p className="mt-1 text-sm text-white/75">
@@ -353,7 +418,7 @@ export function PortfolioAndCertificates({
           <button
             type="button"
             onClick={onBrowseCatalog}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-sm font-bold cursor-pointer self-start sm:self-auto"
+            className="tactile-press inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-sm font-bold cursor-pointer self-start sm:self-auto"
           >
             <span>Explore More Courses</span>
             <ArrowRight className="w-4 h-4" />
@@ -365,8 +430,33 @@ export function PortfolioAndCertificates({
           <h2 className="text-xl font-extrabold text-white mb-5">
             Active Scaffolding Workspaces
           </h2>
-          {enrolledList.length === 0 ? (
-            <div className="rounded-2xl bg-[#00153D] border border-white/15 p-8 text-center">
+          {!isAuthenticated ? (
+            <div className="rounded-2xl glass-midnight border border-white/15 p-8 text-center">
+              <p className="text-base font-bold text-white">
+                Sign in to build your verified capstone portfolio
+              </p>
+              <p className="mt-1.5 text-sm text-white/70 max-w-lg mx-auto">
+                Create a free Apex Academy account with Google, GitHub, or Email to enroll in
+                courses, save sandbox code, and publish verified case studies.
+              </p>
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                <Link
+                  href="/signin"
+                  className="tactile-press px-5 py-2.5 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold"
+                >
+                  Sign In or Create Account
+                </Link>
+                <button
+                  type="button"
+                  onClick={onBrowseCatalog}
+                  className="tactile-press px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold cursor-pointer"
+                >
+                  Browse Courses
+                </button>
+              </div>
+            </div>
+          ) : enrolledList.length === 0 ? (
+            <div className="rounded-2xl glass-midnight border border-white/15 p-8 text-center">
               <p className="text-base font-bold text-white">
                 You haven&apos;t enrolled in a course yet
               </p>
@@ -376,7 +466,7 @@ export function PortfolioAndCertificates({
               <button
                 type="button"
                 onClick={onBrowseCatalog}
-                className="mt-5 px-5 py-2.5 rounded-full bg-[#F2A900] text-[#00205B] text-xs font-bold cursor-pointer"
+                className="tactile-press mt-5 px-5 py-2.5 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold cursor-pointer"
               >
                 Open Course Catalog
               </button>
@@ -415,7 +505,7 @@ export function PortfolioAndCertificates({
                       <button
                         type="button"
                         onClick={() => onOpenCourse(course)}
-                        className="px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold shrink-0 cursor-pointer"
+                        className="tactile-press px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold shrink-0 cursor-pointer"
                       >
                         Resume Lab
                       </button>
@@ -463,7 +553,7 @@ export function PortfolioAndCertificates({
                       <span>{cert.verificationCode}</span>
                     </span>
 
-                    {cert.artifactUrl && (
+                    {cert.artifactUrl && isSafeHttpUrl(cert.artifactUrl) && (
                       <a
                         href={cert.artifactUrl}
                         target="_blank"

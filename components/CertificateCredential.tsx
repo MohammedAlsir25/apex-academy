@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { ApexLogo } from './ApexLogo';
+import { isSafeHttpUrl } from '@/lib/security';
 import type { CertificateRecord } from '@/lib/storage';
 
 interface QrBadgeProps {
@@ -408,7 +409,7 @@ export function CertificateCard({
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-xs text-[#00205B]/75">
-            {cert.artifactUrl && (
+            {cert.artifactUrl && isSafeHttpUrl(cert.artifactUrl) && (
               <a
                 href={cert.artifactUrl}
                 target="_blank"

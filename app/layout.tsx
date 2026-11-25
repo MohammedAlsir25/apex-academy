@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Plus_Jakarta_Sans, Playfair_Display, IBM_Plex_Mono } from 'next/font/google';
+import { FluidMotionProvider } from '@/components/FluidPrimitives';
 import './globals.css';
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -49,7 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${plusJakarta.variable} ${playfair.variable} ${ibmMono.variable}`}
     >
       <body suppressHydrationWarning className="min-h-screen bg-[#00205B] text-white font-sans antialiased selection:bg-[#F2A900] selection:text-[#00205B]">
-        {children}
+        <FluidMotionProvider>{children}</FluidMotionProvider>
       </body>
     </html>
   );

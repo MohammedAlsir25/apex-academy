@@ -1,0 +1,28 @@
+<svg width="684" height="216" viewBox="0 0 228 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Apex Academy Logo Lockup (Light Backgrounds)</title>
+  <g transform="translate(8, 6)">
+    <path d="M6 17L17.5 6H54V26.5L41 39V17H6Z" fill="#F2A900"/>
+    <path d="M6 17L17.5 6L21 17H6Z" fill="#E49E00"/>
+    <path d="M6 19.5H19V39H41L28 54H6V19.5Z" fill="#F2A900"/>
+    <rect x="41" y="39" width="13" height="15" fill="#F2A900"/>
+  </g>
+  <text
+    x="84"
+    y="39"
+    fill="#00205B"
+    font-family="Plus Jakarta Sans, Arial, Helvetica, sans-serif"
+    font-size="34"
+    font-weight="800"
+    font-style="italic"
+    letter-spacing="-0.5"
+  >APEX</text>
+  <text
+    x="85"
+    y="57"
+    fill="#00205B"
+    font-family="Plus Jakarta Sans, Arial, Helvetica, sans-serif"
+    font-size="13"
+    font-weight="700"
+    letter-spacing="4.2"
+  >ACADEMY</text>
+</svg>

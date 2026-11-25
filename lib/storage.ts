@@ -2,12 +2,18 @@
 
 import { getSupabaseClient, isSupabaseConfigured } from './supabase';
 import type { QaEntry } from './module-study-data';
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  type NotificationPreferences,
+} from './email-templates';
 
 export interface LearnerProfile {
   name: string;
   headline: string;
   email: string;
   userId: string | null;
+  provider?: string | null;
+  notificationPreferences?: NotificationPreferences;
 }
 
 export interface ModuleNote {
@@ -73,16 +79,19 @@ export interface AcademyState {
   qaPosts: Record<string, QaEntry[]>;
 }
 
-const STORAGE_KEY = 'apex_academy_state_v1';
+const STORAGE_PREFIX = 'apex_academy_state_v2_';
+const LEGACY_STORAGE_KEY = 'apex_academy_state_v1';
 export const CURRENT_CURRICULUM_VERSION = 2;
 
 export const DEFAULT_STATE: AcademyState = {
   curriculumVersion: CURRENT_CURRICULUM_VERSION,
   profile: {
-    name: 'Mohammed Alsir',
-    headline: 'Capstone Builder',
-    email: 'learner@apexacademy.dev',
+    name: 'Guest Learner',
+    headline: 'Aspiring Capstone Builder',
+    email: '',
     userId: null,
+    provider: null,
+    notificationPreferences: DEFAULT_NOTIFICATION_PREFERENCES,
   },
   studyStreak: {
     currentStreak: 1,
@@ -92,6 +101,10 @@ export const DEFAULT_STATE: AcademyState = {
   certificates: {},
   qaPosts: {},
 };
+
+function getUserStorageKey(userId: string): string {
+  return `${STORAGE_PREFIX}${userId}`;
+}
 
 export function computeNextStudyStreak(prev: StudyStreak): StudyStreak {
   const today = new Date().toISOString().slice(0, 10);
@@ -117,8 +130,6 @@ function migrateLegacyEnrollments(
   if (storedVersion === CURRENT_CURRICULUM_VERSION) {
     return enrollments;
   }
-  // Pre-v2 module IDs (py-m1..m6, etc.) belonged to the old 6-milestone layout.
-  // Preserve enrollment cards & certificates while resetting stale module drafts/locks cleanly.
   const migrated: Record<string, EnrollmentRecord> = {};
   for (const [courseId, enr] of Object.entries(enrollments)) {
     migrated[courseId] = {
@@ -131,10 +142,14 @@ function migrateLegacyEnrollments(
   return migrated;
 }
 
-export function loadLocalState(): AcademyState {
-  if (typeof window === 'undefined') return DEFAULT_STATE;
+/**
+ * Loads cached workspace drafts strictly scoped to the authenticated userId.
+ * Never loads shared guest data when userId is null.
+ */
+export function loadLocalState(userId: string | null = null): AcademyState {
+  if (typeof window === 'undefined' || !userId) return DEFAULT_STATE;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(getUserStorageKey(userId));
     if (!raw) return DEFAULT_STATE;
     const parsed = JSON.parse(raw) as Partial<AcademyState>;
     const migratedEnrollments = migrateLegacyEnrollments(
@@ -143,7 +158,11 @@ export function loadLocalState(): AcademyState {
     );
     const nextState: AcademyState = {
       curriculumVersion: CURRENT_CURRICULUM_VERSION,
-      profile: { ...DEFAULT_STATE.profile, ...(parsed.profile ?? {}) },
+      profile: {
+        ...DEFAULT_STATE.profile,
+        ...(parsed.profile ?? {}),
+        userId,
+      },
       studyStreak: { ...DEFAULT_STATE.studyStreak, ...(parsed.studyStreak ?? {}) },
       enrollments: migratedEnrollments,
       certificates: parsed.certificates ?? {},
@@ -160,9 +179,11 @@ export function loadLocalState(): AcademyState {
 
 export function saveLocalState(state: AcademyState): void {
   if (typeof window === 'undefined') return;
+  const userId = state.profile.userId;
+  if (!userId) return;
   try {
     window.localStorage.setItem(
-      STORAGE_KEY,
+      getUserStorageKey(userId),
       JSON.stringify({
         ...state,
         curriculumVersion: CURRENT_CURRICULUM_VERSION,
@@ -173,14 +194,46 @@ export function saveLocalState(state: AcademyState): void {
   }
 }
 
-export async function syncStateFromSupabase(currentState: AcademyState): Promise<AcademyState> {
+export function clearUserLocalCache(userId?: string | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+    if (userId) {
+      window.localStorage.removeItem(getUserStorageKey(userId));
+    }
+  } catch {
+    // Ignore storage access errors
+  }
+}
+
+function resolveUserDisplayName(user: {
+  email?: string;
+  user_metadata?: Record<string, unknown>;
+}): string {
+  const meta = user.user_metadata ?? {};
+  const candidate =
+    meta.full_name ?? meta.name ?? meta.user_name ?? meta.preferred_username;
+  if (typeof candidate === 'string' && candidate.trim().length > 0) {
+    return candidate.trim().slice(0, 120);
+  }
+  if (user.email) {
+    return user.email.split('@')[0].slice(0, 120);
+  }
+  return 'Learner';
+}
+
+export async function syncStateFromSupabase(): Promise<AcademyState> {
   const supabase = getSupabaseClient();
-  if (!supabase || !isSupabaseConfigured) return currentState;
+  if (!supabase || !isSupabaseConfigured) return DEFAULT_STATE;
 
   try {
-    const { data: userData } = await supabase.auth.getUser();
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
     const user = userData?.user;
-    if (!user) return currentState;
+    if (userErr || !user) {
+      return DEFAULT_STATE;
+    }
+
+    const userScopedCache = loadLocalState(user.id);
 
     const [{ data: profileRow }, { data: enrollmentRows }, { data: milestoneRows }, { data: certRows }] =
       await Promise.all([
@@ -190,7 +243,10 @@ export async function syncStateFromSupabase(currentState: AcademyState): Promise
         supabase.from('capstone_certificates').select('*').eq('user_id', user.id),
       ]);
 
-    const nextEnrollments: Record<string, EnrollmentRecord> = { ...currentState.enrollments };
+    const nextEnrollments: Record<string, EnrollmentRecord> = {
+      ...userScopedCache.enrollments,
+    };
+
     for (const row of enrollmentRows ?? []) {
       const existing = nextEnrollments[row.course_id];
       const hasV2Milestones = (milestoneRows ?? []).some(
@@ -213,7 +269,6 @@ export async function syncStateFromSupabase(currentState: AcademyState): Promise
       const payload = (mRow.artifact_payload ?? {}) as Partial<ModuleProgressRecord> & {
         curriculumVersion?: number;
       };
-      // Skip legacy v1 (6-milestone) rows so old starter drafts never overwrite the 12-lesson workspaces
       if (payload.curriculumVersion !== CURRENT_CURRICULUM_VERSION) {
         continue;
       }
@@ -237,7 +292,9 @@ export async function syncStateFromSupabase(currentState: AcademyState): Promise
       };
     }
 
-    const nextCerts: Record<string, CertificateRecord> = { ...currentState.certificates };
+    const nextCerts: Record<string, CertificateRecord> = {
+      ...userScopedCache.certificates,
+    };
     for (const cRow of certRows ?? []) {
       nextCerts[cRow.course_id] = {
         courseId: cRow.course_id,
@@ -258,23 +315,61 @@ export async function syncStateFromSupabase(currentState: AcademyState): Promise
       };
     }
 
+    const fallbackName = resolveUserDisplayName(user);
+    const provider =
+      typeof user.app_metadata?.provider === 'string'
+        ? user.app_metadata.provider
+        : 'email';
+
     const merged: AcademyState = {
       curriculumVersion: CURRENT_CURRICULUM_VERSION,
       profile: {
-        name: profileRow?.full_name || currentState.profile.name,
-        headline: profileRow?.headline || currentState.profile.headline,
-        email: user.email || currentState.profile.email,
+        name: profileRow?.full_name || fallbackName,
+        headline: profileRow?.headline || 'Capstone Builder',
+        email: user.email || '',
         userId: user.id,
+        provider,
+        notificationPreferences: {
+          ...DEFAULT_NOTIFICATION_PREFERENCES,
+          ...((profileRow?.notification_preferences as Partial<NotificationPreferences> | null) ??
+            {}),
+        },
       },
-      studyStreak: currentState.studyStreak,
+      studyStreak: {
+        currentStreak: profileRow?.study_streak ?? userScopedCache.studyStreak.currentStreak,
+        lastActiveDate: profileRow?.last_active_date ?? userScopedCache.studyStreak.lastActiveDate,
+      },
       enrollments: nextEnrollments,
       certificates: nextCerts,
-      qaPosts: currentState.qaPosts,
+      qaPosts: userScopedCache.qaPosts,
     };
+
     saveLocalState(merged);
     return merged;
   } catch {
-    return currentState;
+    return DEFAULT_STATE;
+  }
+}
+
+export async function persistProfileToSupabase(profile: LearnerProfile): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase || !profile.userId) return;
+  try {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user || data.user.id !== profile.userId) return;
+    await supabase.from('profiles').upsert(
+      {
+        id: data.user.id,
+        full_name: profile.name.trim().slice(0, 120) || 'Learner',
+        headline: profile.headline.trim().slice(0, 160) || 'Capstone Builder',
+        notification_preferences:
+          profile.notificationPreferences ?? DEFAULT_NOTIFICATION_PREFERENCES,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'id' }
+    );
+  } catch {
+    // Local user-scoped draft remains intact
   }
 }
 

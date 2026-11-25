@@ -44,6 +44,7 @@ import {
   renderInlineFormattedText,
   TheoryCard,
 } from './LessonChallengeCards';
+import { SPRING_CRITICALLY_DAMPED, SPRING_MOMENTUM } from './FluidPrimitives';
 import {
   COURSE_SKILLS_VERIFIED,
   getModuleStudyPack,
@@ -2243,19 +2244,19 @@ export function CoursePlayer({
           >
             <motion.div
               key={`toast-${achievement.id}`}
-              initial={{ opacity: 0, y: -24, scale: 0.9 }}
+              initial={{ opacity: 0, y: -24, scale: 0.92 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -14, scale: 0.95 }}
-              transition={{ type: 'spring', stiffness: 360, damping: 22 }}
-              className="pointer-events-auto w-full max-w-md rounded-2xl bg-[#00205B] border-2 border-[#F2A900] shadow-[0_24px_60px_rgba(0,0,0,0.65)] p-4 sm:p-5 text-white"
+              transition={SPRING_MOMENTUM}
+              className="pointer-events-auto w-full max-w-md rounded-2xl glass-midnight-deep border-2 border-[#F2A900] p-4 sm:p-5 text-white"
               role="status"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3.5 min-w-0">
                   <motion.div
-                    initial={{ scale: 0.5, rotate: -18 }}
-                    animate={{ scale: [0.6, 1.15, 1], rotate: [-12, 8, 0] }}
-                    transition={{ duration: 0.5 }}
+                    initial={{ scale: 0.6, rotate: -14 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={SPRING_MOMENTUM}
                     className="w-11 h-11 rounded-xl bg-[#F2A900] text-[#00205B] flex items-center justify-center shrink-0"
                   >
                     {achievement.kind === 'capstone' ? (
@@ -2298,7 +2299,7 @@ export function CoursePlayer({
                 <button
                   type="button"
                   onClick={() => setAchievement(null)}
-                  className="p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+                  className="tactile-press p-1 rounded-lg text-white/70 hover:text-white hover:bg-white/10 shrink-0 cursor-pointer"
                   aria-label="Dismiss achievement notification"
                 >
                   <X className="w-4 h-4" />
@@ -2314,7 +2315,7 @@ export function CoursePlayer({
                         setAchievement(null);
                         onViewCertificate();
                       }}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold transition-colors cursor-pointer"
+                      className="tactile-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold cursor-pointer"
                     >
                       <Award className="w-3.5 h-3.5" />
                       <span>View Verified Certificate</span>
@@ -2327,7 +2328,7 @@ export function CoursePlayer({
                         setAchievement(null);
                         if (nextIdx !== undefined) setActiveIndex(nextIdx);
                       }}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold transition-colors cursor-pointer"
+                      className="tactile-press inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#F2A900] hover:bg-[#FFE264] text-[#00205B] text-xs font-bold cursor-pointer"
                     >
                       <span>
                         Continue to Lesson {course.modules[achievement.nextIndex]?.number}
@@ -2342,13 +2343,13 @@ export function CoursePlayer({
         )}
       </AnimatePresence>
 
-      {/* Classroom Header */}
-      <div className="bg-[#00205B] border-b border-white/10 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      {/* Frosted Classroom Header */}
+      <div className="sticky top-0 z-30 glass-midnight border-b border-white/10 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
           <button
             type="button"
             onClick={onExit}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-semibold text-white transition-colors shrink-0 cursor-pointer"
+            className="tactile-press inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-semibold text-white shrink-0 cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Catalog</span>
@@ -2429,7 +2430,7 @@ export function CoursePlayer({
                   onClick={() => {
                     if (unlocked) setActiveIndex(idx);
                   }}
-                  className={`w-full text-left p-2.5 rounded-xl border transition-colors flex items-start gap-2.5 ${
+                  className={`tactile-press w-full text-left p-2.5 rounded-xl border flex items-start gap-2.5 ${
                     active
                       ? 'bg-[#003087] border-[#F2A900] text-white'
                       : unlocked
@@ -2440,9 +2441,9 @@ export function CoursePlayer({
                   <span className="mt-0.5 shrink-0">
                     {completed ? (
                       <motion.span
-                        initial={{ scale: 0.4, rotate: -25 }}
+                        initial={{ scale: 0.5, rotate: -14 }}
                         animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: 'spring', stiffness: 450, damping: 18 }}
+                        transition={SPRING_CRITICALLY_DAMPED}
                         className="inline-block"
                       >
                         <CheckCircle2 className="w-4 h-4 text-[#F2A900]" />
